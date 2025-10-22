@@ -9,7 +9,7 @@ from pathlib import Path
 from loguru import logger
 from azure.ai.agents import AgentsClient
 from azure.identity import DefaultAzureCredential
-from utils.utils import get_llm_models
+from utils.utils import get_llm_models, get_llm_workweb
 from azure.ai.agents.models import (
     CodeInterpreterTool,
     MessageAttachment,
@@ -49,10 +49,41 @@ async def chat_agent(user_input: str) -> str:
         model_name = chat_settings.get("model_name")        # Get the model details from the selected model
         llm_details = next((item for item in get_llm_models() if item["model_deployment"] == chat_profile), {})
         
+        # Get the model_id from llm_workweb by mapping model_deployment and mode
+        mode = cl.user_session.get("mode")
+        model_id = None
+        if llm_details and mode:
+            llm_workweb = get_llm_workweb()
+            workweb_model = next((item for item in llm_workweb 
+                                if item["model_deployment"] == llm_details["model_deployment"] 
+                                and item["mode"] == mode), {})
+            model_id = workweb_model.get("model_id")
+
+        logger.debug(f"Mapped model_id: {model_id} for deployment: {llm_details['model_deployment']} and mode: {mode}")
+        
+        # Check if model_id is None and raise error
+        if model_id is None:
+            raise RuntimeError("Please refresh this page.")
+        
+        is_first_message = not cl.user_session.get("first_message")
+        if is_first_message:
+            cl.user_session.set("first_message", user_input)
+
         # Show thinking message to user
-        msg = await cl.Message(f"[{model_name}] thinking...", author="agent").send()
+        msg = await cl.Message(f"[{model_name}] thinking...", author="LikhAI").send()
         if not msg:
             raise Exception("Failed to create message object")
+        
+        # Attach ThreadNameUpdater element if this is the first message
+        if is_first_message:
+            # Create a custom element that will trigger the thread name update
+            thread_name_updater = cl.CustomElement(
+                name="ThreadNameUpdater", 
+                props={"userInput": user_input}, 
+                display="inline"
+            )
+            msg.elements = [thread_name_updater]
+            await msg.update()
 
         # Create an instance of the AgentsClient using DefaultAzureCredential
         agents_client = AgentsClient(
@@ -106,8 +137,10 @@ async def chat_agent(user_input: str) -> str:
         )
 
         is_thinking = True        # Run the agent to process tne message in the thread
-        with agents_client.runs.stream(thread_id=thread_id, agent_id=llm_details["model_id"]) as stream:
+        with agents_client.runs.stream(thread_id=thread_id, agent_id=model_id) as stream:
             msg.content = ""
+            # Delete msg.elements
+            msg.elements = []
             for event_type, event_data, _ in stream:
                 if isinstance(event_data, MessageDeltaChunk):
                     msg.content += event_data.text
@@ -157,11 +190,35 @@ async def chat_agent(user_input: str) -> str:
 
         msg.content = response_message.text.value
 
-        # Append annotations to the message content
+        # Define a list of known "bad" domains to filter out
+        local_or_dev_domains = [
+            ".app.github.dev",
+            "localhost",
+            "127.0.0.1",
+            "10.0.0.1",
+            "192.168.0.1",
+        ]
+        
+        valid_citations = []
         for annotation in response_message.text.annotations:
-            logger.info(f"Annotation: {annotation}")
-            if "url_citation" in annotation:
-                msg.content += f"\n[{annotation.url_citation.title}]({annotation.url_citation.url})"
+            logger.info(f"Checking Annotation: {annotation}")
+            
+            # Ensure the annotation has a url_citation and a valid URL
+            if annotation.url_citation.url.startswith("http://") or annotation.url_citation.url.startswith("https://"):
+                citation_url = annotation.url_citation.url
+                logger.info(f"citation_url: {citation_url}")
+                
+                try:
+                    valid_citations.append(f"[{annotation.url_citation.title}]({citation_url})")
+
+                except Exception as e:
+                    logger.warning(f"Failed to parse URL: {citation_url}, Error: {e}")
+        
+        # Now, append the filtered citations to the message content
+        if valid_citations:
+            msg.content += f"\n\n**Sources:**"
+            for citation in valid_citations:
+                msg.content += f"\n{citation}"
 
         if msg:
             await msg.update()

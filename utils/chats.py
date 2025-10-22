@@ -106,7 +106,7 @@ async def chat_completion(messages: list, use_tools = False) -> str:
         model_name = chat_settings.get("model_name")
 
         # Show thinking message to user
-        msg = await cl.Message(f"[{model_name}] thinking...", author="agent").send()
+        msg = await cl.Message(f"[{model_name}] thinking...", author="LikhAI").send()
         chat_parameters = get_llm_params(messages)
         logger.info(f"Chat parameters: {chat_parameters}")
 
@@ -130,12 +130,15 @@ async def chat_completion(messages: list, use_tools = False) -> str:
             if "citations" in chunk:
                 last_chunk = chunk
 
+        logger.info("Checking for citations inside chat_completion.")
         if last_chunk and "citations" in last_chunk:
             msg.content += f"\n\n**Sources:**"
 
             # Loop through citations and append them to the response
             for citation in last_chunk.citations:
                 msg.content += f"\n[{citation}]({citation})"
+
+
 
         logger.info(f"Last Chunk: {last_chunk}")
 
