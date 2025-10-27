@@ -1,4 +1,4 @@
-chainlit==2.5.5
+chainlit>=2.0.0,<3.0.0
 python-dotenv==1.1.0
 azure-ai-projects==1.0.0b12
 azure-ai-inference==1.0.0b6
@@ -30,4 +30,8 @@ ipython
 plotly>=5.18.0
 pandas>=2.0.0
 numpy>=1.24.0
+<<<<<<< HEAD
 openpyxl>=3.1.0
+=======
+openpyxl>=3.1.0
+>>>>>>> 2c6d00a (eda (sql, chart, insight) and deep research)

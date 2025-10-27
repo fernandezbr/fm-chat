@@ -132,6 +132,7 @@ class ChartGenerator:
         fig = px.scatter(df, x=x, y=y, **kwargs)
         return fig
     
+<<<<<<< HEAD
     def _create_pie_chart(self, df: pd.DataFrame, values: str = None, names: str = None, **kwargs) -> go.Figure:
         """Create pie chart"""
         values = values or df.columns[1]
@@ -140,6 +141,43 @@ class ChartGenerator:
         fig = px.pie(df, values=values, names=names, **kwargs)
         return fig
     
+=======
+    def _create_pie_chart(self, df: pd.DataFrame, values: str | None = None, names: str | None = None, **kwargs):
+        """Create a pie chart, tolerating generic x/y kwargs from a higher-level API."""
+        # 1) Absorb generic kwargs that pies don't accept
+        x = kwargs.pop("x", None)
+        y = kwargs.pop("y", None)
+
+        # 2) Prefer explicit args; otherwise map x→names and y→values when given
+        if names is None and isinstance(x, str) and x in df.columns:
+            names = x
+        if values is None and isinstance(y, str) and y in df.columns:
+            values = y
+
+        # 3) Fallback to first two columns
+        if names is None:
+            names = df.columns[0]
+        if values is None:
+            values = df.columns[1]
+
+        # 4) Ensure values column is numeric (convert if needed)
+        if not pd.api.types.is_numeric_dtype(df[values]):
+            df = df.copy()
+            df[values] = pd.to_numeric(df[values], errors="coerce")
+
+        # 5) Filter to kwargs that px.pie actually supports
+        allowed = {
+            "color", "color_discrete_sequence", "color_discrete_map", "title", "hole",
+            "category_orders", "hover_name", "hover_data", "labels", "template",
+            "width", "height"
+        }
+        pie_kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+
+        # 6) Build figure
+        fig = px.pie(df, names=names, values=values, **pie_kwargs)
+        return fig
+        
+>>>>>>> 2c6d00a (eda (sql, chart, insight) and deep research)
     def _create_histogram(self, df: pd.DataFrame, x: str = None, **kwargs) -> go.Figure:
         """Create histogram"""
         x = x or df.columns[0]
