@@ -30,8 +30,4 @@ ipython
 plotly>=5.18.0
 pandas>=2.0.0
 numpy>=1.24.0
-<<<<<<< HEAD
 openpyxl>=3.1.0
-=======
-openpyxl>=3.1.0
->>>>>>> 2c6d00a (eda (sql, chart, insight) and deep research)
