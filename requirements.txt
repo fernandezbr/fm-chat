@@ -1,33 +1,59 @@
-chainlit==2.8.3
+# --- tooling (helps resolver) ---
+pip>=25.3
+setuptools>=75.1
+wheel>=0.44.0
+
+# If you hit "no matching distribution" due to a stale mirror, uncomment:
+# --index-url https://pypi.org/simple
+# --extra-index-url https://pypi.org/simple
+
+# --- core ---
+chainlit==2.5.5
+# Chainlit 2.x expects literalai 0.1.x
+literalai>=0.1.201
+
 python-dotenv==1.1.0
-azure-ai-projects==1.0.0b12
-azure-ai-inference==1.0.0b6
+
+# --- azure sdks ---
 azure-identity==1.23.1
-azure-ai-ml==1.28.1
-markitdown[all]==0.1.2
-openai==1.82.1
-loguru==0.7.3
-litellm==1.72.6
-asyncpg==0.30.0
 azure-storage-blob==12.25.1
+azure-ai-ml==1.28.1
+azure-ai-projects==1.0.0b12
+
+# --- web/api (aligned to Chainlit) ---
+fastapi>=0.115.3,<0.116
+# DO NOT PIN starlette; FastAPI/Chainlit will pull a compatible 0.41.x
+pydantic>=2.7,<3
+uvicorn[standard]>=0.30,<0.34
+websockets>=12.0
+python-multipart>=0.0.9
+jinja2>=3.1.3
+rich_click>=1.7.4
 aiohttp==3.12.6
-pytest==8.4.1
-pytest-asyncio==1.1.0
-pytest-mock==3.14.1
-langchain-azure-ai --only-binary :all:
-langgraph
-markdownify
-tavily-python
-fastapi
-uvicorn
-websockets
-pydantic
-python-multipart
-jinja2
-rich_click
-azure-mgmt-cognitiveservices
-ipython
-plotly>=5.18.0
+
+# --- logs / repl ---
+loguru==0.7.3
+ipython>=8.25.0
+
+# --- data / viz ---
 pandas>=2.0.0
 numpy>=1.24.0
+plotly>=5.18.0
 openpyxl>=3.1.0
+markdownify>=0.13.1
+markitdown[all]==0.1.2
+
+# --- llm / orchestration ---
+openai==1.82.1
+litellm==1.72.6
+langchain-azure-ai>=0.1.0
+langgraph>=0.2.20
+tavily-python>=0.5.0
+
+# --- db / async ---
+asyncpg==0.30.0
+
+# --- tests (optional on App Service) ---
+pytest==8.4.1
+pytest-asyncio==0.24.0
+pytest-mock==3.14.1
